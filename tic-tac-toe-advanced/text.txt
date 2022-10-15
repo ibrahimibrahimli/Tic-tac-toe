@@ -1,0 +1,89 @@
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+const initialState = {
+  status: "idle",
+  error: null,
+  selectPostId: {},
+  posts: [],
+};
+
+export const fetchPosts = createAsyncThunk("posts/fetchPosts", async () => {
+  try {
+    const response = await fetch("http://localhost:3000/posts");
+    return await response.json();
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+export const addPosts = createAsyncThunk("posts/addPosts", async (post) => {
+  try {
+    const response = await fetch("http://localhost:3000/posts", {
+      method: "POST",
+      body: JSON.stringify(post),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    });
+    return await response.json();
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+const postSlice = createSlice({
+  name: "posts",
+  initialState,
+  reducers: {
+    addPost: (state, action) => {
+      state.posts.push(action.payload);
+    },
+    editPost: (state, action) => {
+      const { id, title, content } = action.payload;
+      const selectPost = !isNaN(parseInt(id))
+        ? state.posts.find((post) => post.id === parseInt(id))
+        : state.posts.find((post) => post.id === id);
+
+      if (selectPost) {
+        selectPost.title = title;
+        selectPost.content = content;
+      }
+    },
+  },
+  extraReducers: {
+    [fetchPosts.pending]: (state, action) => {
+      state.status = "loading";
+    },
+    [fetchPosts.fulfilled]: (state, action) => {
+      state.status = "succeeded";
+      state.posts = state.posts.concat(action.payload);
+    },
+    [fetchPosts.rejected]: (state, action) => {
+      state.status = "failed";
+      state.error = action.error.message;
+    },
+    [addPosts.pending]: (state, action) => {
+      state.status = "loading";
+    },
+    [addPosts.fulfilled]: (state, action) => {
+      state.status = "succeeded";
+      state.posts.push(action.payload);
+    },
+    [addPosts.rejected]: (state, action) => {
+      state.status = "failed";
+      state.error = action.error.message;
+    },
+  },
+});
+
+export const selectAllPost = (state) => {
+  return state.posts.posts;
+};
+
+export const selectPostById = (state, postId) => {
+  return state.posts.posts.find((post) => post.id === parseInt(postId));
+};
+
+export const { addPost, editPost } = postSlice.actions;
+
+export default postSlice.reducer;
